@@ -28,7 +28,12 @@ print_param :: proc(header: ^doc_format.Header, param: ^doc_format.Entity) {
     pkgs := doc_format.from_array(header, header.pkgs);
 
     type := types[param.type]
-    fmt.printf("%s: ", doc_format.from_string(header, param.name))
+    if name := doc_format.from_string(header, param.name); len(name) > 0 {
+        fmt.printf("<span class='param-name'>%s</span>: ", name)
+    }
+
+    fmt.printf("<span class='type'>")
+    defer fmt.printf("</span>")
     #partial switch type.kind {
         case .Basic: {
             fmt.printf("%s", doc_format.from_string(header, type.name))
@@ -64,6 +69,16 @@ print_param :: proc(header: ^doc_format.Header, param: ^doc_format.Entity) {
 
 
 main :: proc() {
+    fmt.println("<!doctype html>")
+    fmt.println("<html>")
+    defer fmt.println("</html>")
+    fmt.println("<head>")
+    fmt.println("<meta charset=utf8>")
+    fmt.println(`<link rel="stylesheet" href="main.css">`)
+    fmt.println("</head>")
+    fmt.println("<body>")
+    defer fmt.println("</body>")
+
     // generate this file by calling:
     // $ odin doc odindoc.odin -all-packages -doc-format
     data :: #load("odindoc.odin-doc")
@@ -76,42 +91,60 @@ main :: proc() {
     entities := doc_format.from_array(header, header.entities);
     types := doc_format.from_array(header, header.types);
 
+    // TOC
+    // TODO: deduplicate
+    fmt.println("<header>")
+    fmt.println("<a href='https://odin-lang.org' target=_blank>")
+    fmt.println("<img height=30 src='https://odin-lang.org/logo.svg'>")
+    fmt.println("</a>")
+    fmt.println("<span class='subheader'>:: <a href='#packages'>docs</a></span>")
+    fmt.println("</header>")
+
+    fmt.println("<main>")
+    defer fmt.println("</main>")
+
+    fmt.println("<h1 id='packages'>Packages</h1>")
+    fmt.println("<div class='pkgs'>")
+    for pkg in doc_format.from_array(header, header.pkgs) {
+        pkg_name := doc_format.from_string(header, pkg.name)
+        switch pkg_name {
+        case "", "c", "main": continue
+        }
+        fmt.printf("<a href='#%s'>%s</a>\n", pkg_name, pkg_name)
+    }
+    fmt.println("</div>")
+
     for pkg in doc_format.from_array(header, header.pkgs) {
         pkg_name := doc_format.from_string(header, pkg.name)
         switch pkg_name {
         case "", "c", "main": continue
         }
 
-        fmt.printf("* Package: %s\n", pkg_name)
-
-        if false {
-            fmt.printf(" :FILE: %s\n", doc_format.from_string(header, pkg.fullpath))
-        }
+        fmt.printf("<h2 id='%s'>Package: <span class='pkg'>%s</span></h2>\n", pkg_name, pkg_name)
 
         for entity_index in doc_format.from_array(header, pkg.entities) {
             entity := entities[entity_index]
             if entity.kind == .Procedure {
                 proc_name := doc_format.from_string(header, entity.name)
 
-                fmt.printf("** ")
+                fmt.println("<div class='proc'>")
+                defer fmt.println("</div>")
 
-                // Name & Source location
-                use_github_as_location :: true
-                if use_github_as_location {
-                    base_url :: "https://github.com/odin-lang/Odin/tree/master"
-                    file := doc_format.from_string(header, files[entity.pos.file].name)[len(ODIN_ROOT):]
-                    line := entity.pos.line
-                    fmt.printf("[[%s/%s#L%d][~%s.%s~]]", base_url, file, line, pkg_name, proc_name)
-                } else {
-                    file := doc_format.from_string(header, files[entity.pos.file].name)
-                    line := entity.pos.line
-                    column := entity.pos.column
-                    fmt.printf("[[%s:%d:%d][%s.%s]]", file, line, column, pkg_name, proc_name)
-                }
+                // Name
+                fmt.printf("<span class='proc-name'>%s.%s</span>", pkg_name, proc_name)
 
-                fmt.printf(" :: proc(")
+                // Source location
+                base_url :: "https://github.com/odin-lang/Odin/tree/master"
+                file := doc_format.from_string(header, files[entity.pos.file].name)[len(ODIN_ROOT):]
+                line := entity.pos.line
+                fmt.printf(
+                    " :: <a href='%s/%s#L%d' target=_blank class='keyword'>proc</a>(",
+                    base_url,
+                    file,
+                    line,
+                )
 
-
+                // Type
                 proc_type := types[entity.type]
                 proc_params_and_results := doc_format.from_array(header, proc_type.types)
 
@@ -140,7 +173,7 @@ main :: proc() {
 
                 // Docs
                 if docs := doc_format.from_string(header, entity.docs); len(docs) > 0 {
-                    fmt.printf("%s", docs)
+                    fmt.printf("<p>%s</p>", docs)
                 }
             }
         }
