@@ -38,7 +38,11 @@ print_param :: proc(header: ^doc_format.Header, param: ^doc_format.Entity) {
         case .Basic: {
             fmt.printf("%s", doc_format.from_string(header, type.name))
             if init_string := doc_format.from_string(header, param.init_string); len(init_string) > 0 {
-                fmt.printf("!!!!! = %s", init_string)
+                if init_string[0] == '"' {
+                    fmt.printf(" = %s", init_string[1:len(init_string)-1])
+                } else {
+                    fmt.printf(" = %v", init_string)
+                }
             }
         }
         case .Slice: {
@@ -129,14 +133,24 @@ main :: proc() {
                 defer fmt.println("</div>")
 
                 // Name
-                fmt.printf("<span class='proc-name'>%s.%s</span>", pkg_name, proc_name)
+                fmt.printf(
+                    "<span id='%s.%s' class='proc-name'>%s.%s</span>",
+                    pkg_name,
+                    proc_name,
+                    pkg_name,
+                    proc_name,
+                )
 
                 // Source location
                 base_url :: "https://github.com/odin-lang/Odin/tree/master"
                 file := doc_format.from_string(header, files[entity.pos.file].name)[len(ODIN_ROOT):]
                 line := entity.pos.line
+
+                // Link
+                fmt.printf(" <a href='#%s.%s' class='proc-link'>::</a>", pkg_name, proc_name)
+
                 fmt.printf(
-                    " :: <a href='%s/%s#L%d' target=_blank class='keyword'>proc</a>(",
+                    " <a href='%s/%s#L%d' target=_blank class='keyword'>proc</a>(",
                     base_url,
                     file,
                     line,
