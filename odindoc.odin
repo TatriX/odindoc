@@ -66,8 +66,6 @@ print_param :: proc(header: ^doc_format.Header, param: ^doc_format.Entity) {
     }
 }
 
-
-
 main :: proc() {
     fmt.println("<!doctype html>")
     fmt.println("<html>")
@@ -80,7 +78,7 @@ main :: proc() {
     defer fmt.println("</body>")
 
     // generate this file by calling:
-    // $ odin doc odindoc.odin -all-packages -doc-format
+    // $ odin doc examples/all/all_main.odin -all-packages -doc-format
     data :: #load("odindoc.odin-doc")
     header, err := doc_format.read_from_bytes(data)
     if err != nil {
