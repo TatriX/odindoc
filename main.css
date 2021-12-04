@@ -17,13 +17,20 @@ a:hover {
 }
 
 h1 {
-    margin-bottom: 0.25em;
+    margin: 0.25em 0 0.25em;
 }
 
 h2 {
     margin-bottom: 0.2em;
 }
 
+/* helpers */
+.hidden {
+    display: none;
+}
+
+
+/*  */
 header {
     background: #3882d2;
     padding: 1em;
@@ -46,15 +53,25 @@ header img {
     display: block;
 }
 
-main {
-    padding: 1em;
+header form {
+    margin-left: 1em;
 }
 
-h1, h2, .proc-name {
+header input {
+    border: none;
+}
+
+main {
+    padding: 0 1em;
+}
+
+/* */
+
+#pkgs, .pkg, .proc {
     scroll-margin-top: 65px;
 }
 
-.pkgs a {
+#pkgs a {
     display: block;
     margin-left: 1em;
 }
@@ -81,7 +98,7 @@ h1, h2, .proc-name {
     color: #933;
 }
 
-p {
+.docs {
     padding-left: 1em;
     border-left: 1px solid #333;
     max-width: 800px;

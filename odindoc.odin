@@ -74,11 +74,14 @@ main :: proc() {
     fmt.println("<!doctype html>")
     fmt.println("<html>")
     defer fmt.println("</html>")
+
     fmt.println("<head>")
     fmt.println("<meta charset=utf8>")
-    fmt.println(`<link rel="stylesheet" href="main.css">`)
+    defer fmt.println(`<link rel="stylesheet" href="main.css?v=1">`)
     fmt.println("</head>")
+
     fmt.println("<body>")
+    defer fmt.println(`<script src="main.js?v=1"></script>`)
     defer fmt.println("</body>")
 
     // generate this file by calling:
@@ -99,14 +102,17 @@ main :: proc() {
     fmt.println("<a href='https://odin-lang.org' target=_blank>")
     fmt.println("<img height=30 src='https://odin-lang.org/logo.svg'>")
     fmt.println("</a>")
-    fmt.println("<span class='subheader'>:: <a href='#packages'>docs</a></span>")
+    fmt.println("<span class='subheader'>:: <a href='#pkgs'>docs</a></span>")
+    fmt.println("<form>")
+    fmt.println("<input class='search-input' placeholder='search' >")
+    fmt.println("</form>")
     fmt.println("</header>")
 
     fmt.println("<main>")
     defer fmt.println("</main>")
 
-    fmt.println("<h1 id='packages'>Packages</h1>")
-    fmt.println("<div class='pkgs'>")
+    fmt.println("<div id='pkgs'>")
+    fmt.println("<h1>Packages</h1>")
     for pkg in doc_format.from_array(header, header.pkgs) {
         pkg_name := doc_format.from_string(header, pkg.name)
         switch pkg_name {
@@ -122,21 +128,20 @@ main :: proc() {
         case "", "c", "main": continue
         }
 
-        fmt.printf("<h2 id='%s'>Package: <span class='pkg'>%s</span></h2>\n", pkg_name, pkg_name)
+        fmt.printf("<div class='pkg' id='%s'>\n", pkg_name)
+        fmt.printf("<h2>Package: <span class='pkg-name'>%s</span></h2>\n", pkg_name)
 
         for entity_index in doc_format.from_array(header, pkg.entities) {
             entity := entities[entity_index]
             if entity.kind == .Procedure {
                 proc_name := doc_format.from_string(header, entity.name)
 
-                fmt.println("<div class='proc'>")
+                fmt.printf("<div class='proc' id='%s.%s' data-pkg='%s'>", pkg_name, proc_name, pkg_name)
                 defer fmt.println("</div>")
 
                 // Name
                 fmt.printf(
-                    "<span id='%s.%s' class='proc-name'>%s.%s</span>",
-                    pkg_name,
-                    proc_name,
+                    "<span class='proc-name'>%s.%s</span>",
                     pkg_name,
                     proc_name,
                 )
@@ -185,9 +190,10 @@ main :: proc() {
 
                 // Docs
                 if docs := doc_format.from_string(header, entity.docs); len(docs) > 0 {
-                    fmt.printf("<p>%s</p>", docs)
+                    fmt.printf("<p class='.docs'>%s</p>", docs)
                 }
             }
         }
+        fmt.print("</div>") // .pkg
     }
 }
