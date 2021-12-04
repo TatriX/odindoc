@@ -21,6 +21,16 @@ print_params :: proc(header: ^doc_format.Header, params_indices: []doc_format.En
     }
 }
 
+print_init_string :: proc(header: ^doc_format.Header, param: ^doc_format.Entity) {
+    if init_string := doc_format.from_string(header, param.init_string); len(init_string) > 0 {
+        if init_string[0] == '"' {
+            fmt.printf(" = %s", init_string[1:len(init_string)-1])
+        } else {
+            fmt.printf(" = %v", init_string)
+        }
+    }
+}
+
 print_param :: proc(header: ^doc_format.Header, param: ^doc_format.Entity) {
     entities := doc_format.from_array(header, header.entities);
     files := doc_format.from_array(header, header.files);
@@ -37,21 +47,17 @@ print_param :: proc(header: ^doc_format.Header, param: ^doc_format.Entity) {
     #partial switch type.kind {
         case .Basic: {
             fmt.printf("%s", doc_format.from_string(header, type.name))
-            if init_string := doc_format.from_string(header, param.init_string); len(init_string) > 0 {
-                if init_string[0] == '"' {
-                    fmt.printf(" = %s", init_string[1:len(init_string)-1])
-                } else {
-                    fmt.printf(" = %v", init_string)
-                }
-            }
+            print_init_string(header, param)
         }
         case .Slice: {
             slice_type := types[doc_format.from_array(header, type.types)[0]]
             fmt.printf("%s", doc_format.from_string(header, slice_type.name),)
+            print_init_string(header, param)
         }
         case .Pointer: {
             pointer_type := types[doc_format.from_array(header, type.types)[0]]
             fmt.printf("%s", doc_format.from_string(header, pointer_type.name),)
+            print_init_string(header, param)
         }
         case .Named: {
             base_type := types[doc_format.from_array(header, type.types)[0]]
@@ -63,6 +69,7 @@ print_param :: proc(header: ^doc_format.Header, param: ^doc_format.Entity) {
                 doc_format.from_string(header, pkg.name),
                 doc_format.from_string(header, entity.name),
             )
+            print_init_string(header, param)
         }
         case: {
             fmt.printf("<<%s>>", type.kind)
