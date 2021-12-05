@@ -176,18 +176,17 @@ Please create an <a href="https://github.com/TatriX/odindoc/issues" target=_blan
                 proc_type := types[entity.type]
                 proc_params_and_results := doc_format.from_array(header, proc_type.types)
 
-                proc_params := types[proc_params_and_results[0]]
-
                 // Input params
+		proc_params := types[proc_params_and_results[0]]
                 params := doc_format.from_array(header, proc_params.entities);
                 print_params(header, params)
 
+                // Results
                 fmt.printf(")")
-                if len(params) > 0 {
+		proc_results := types[proc_params_and_results[1]]
+		results := doc_format.from_array(header, proc_results.entities);
+                if len(results) > 0 {
                     fmt.printf(" -> ")
-
-                    // Results
-                    results := doc_format.from_array(header, proc_params.entities);
                     if len(results) > 1 {
                         fmt.printf("(")
                         print_params(header, results)
