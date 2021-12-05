@@ -33,7 +33,7 @@ h2 {
 /*  */
 header {
     background: #3882d2;
-    padding: 1em;
+    padding: 0.5em 1em;
     display: flex;
     align-items: center;
     position: sticky;
@@ -59,6 +59,15 @@ header form {
 
 header input {
     border: none;
+}
+
+header .feedback-welcome {
+    margin-left: auto;
+    color: #eee;
+}
+
+header .feedback-welcome a {
+    text-decoration: underline;
 }
 
 main {

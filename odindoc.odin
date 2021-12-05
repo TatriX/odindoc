@@ -103,8 +103,6 @@ main :: proc() {
     entities := doc_format.from_array(header, header.entities);
     types := doc_format.from_array(header, header.types);
 
-    // TOC
-    // TODO: deduplicate
     fmt.println("<header>")
     fmt.println("<a href='https://odin-lang.org' target=_blank>")
     fmt.println("<img height=30 src='https://odin-lang.org/logo.svg'>")
@@ -113,6 +111,12 @@ main :: proc() {
     fmt.println("<form>")
     fmt.println("<input class='search-input' placeholder='search' >")
     fmt.println("</form>")
+    fmt.println(`<span class='feedback-welcome'>
+This is still work in progress.<br>
+Missing feature or have any feedback?<br>
+Please create an <a href="https://github.com/TatriX/odindoc/issues" target=_blank>issue</a>.
+</span>
+`)
     fmt.println("</header>")
 
     fmt.println("<main>")
