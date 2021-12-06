@@ -74,9 +74,9 @@ main {
     padding: 0 1em;
 }
 
-/* */
+/* anchors */
 
-#pkgs, .pkg, .proc {
+#pkgs, .pkg, .proc, .type {
     scroll-margin-top: 65px;
 }
 
@@ -85,17 +85,19 @@ main {
     margin-left: 1em;
 }
 
-.proc {
+/* procs */
+
+.proc, .type {
     padding-left: 1em;
     margin: 0.25em;
 }
 
-.proc-name {
+.proc-name, .type-name {
     color: #34392f;
     font-weight: 700;
 }
 
-.proc-link {
+.proc-link, .type-link {
     color: #666;
 }
 
@@ -103,7 +105,7 @@ main {
     color: #333;
 }
 
-.type {
+.param-type {
     color: #933;
 }
 
@@ -111,4 +113,9 @@ main {
     padding-left: 1em;
     border-left: 1px solid #333;
     max-width: 800px;
+}
+
+
+.struct-field {
+    margin-left: 1em;
 }

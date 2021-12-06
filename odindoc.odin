@@ -42,7 +42,7 @@ print_param :: proc(header: ^doc_format.Header, param: ^doc_format.Entity) {
         fmt.printf("<span class='param-name'>%s</span>: ", name)
     }
 
-    fmt.printf("<span class='type'>")
+    fmt.printf("<span class='param-type'>")
     defer fmt.printf("</span>")
     #partial switch type.kind {
         case .Basic: {
@@ -64,10 +64,15 @@ print_param :: proc(header: ^doc_format.Header, param: ^doc_format.Entity) {
             entity := entities[doc_format.from_array(header, type.entities)[0]]
             file := files[entity.pos.file]
             pkg := pkgs[file.pkg]
+
+	    pkg_name := doc_format.from_string(header, pkg.name)
+	    name := doc_format.from_string(header, entity.name)
             fmt.printf(
-                "%v.%s",
-                doc_format.from_string(header, pkg.name),
-                doc_format.from_string(header, entity.name),
+                "<a href='#%s.%s'>%s.%s</a>",
+                pkg_name,
+                name,
+                pkg_name,
+                name,
             )
             print_init_string(header, param)
         }
@@ -103,107 +108,182 @@ main :: proc() {
     entities := doc_format.from_array(header, header.entities);
     types := doc_format.from_array(header, header.types);
 
-    fmt.println("<header>")
-    fmt.println("<a href='https://odin-lang.org' target=_blank>")
-    fmt.println("<img height=30 src='https://odin-lang.org/logo.svg'>")
-    fmt.println("</a>")
-    fmt.println("<span class='subheader'>:: <a href='#pkgs'>docs</a></span>")
-    fmt.println("<form>")
-    fmt.println("<input class='search-input' placeholder='search' >")
-    fmt.println("</form>")
-    fmt.println(`<span class='feedback-welcome'>
+    // header
+    {
+	fmt.println("<header>")
+	defer fmt.println("</header>")
+	fmt.println("<a href='https://odin-lang.org' target=_blank>")
+	fmt.println("<img height=30 src='https://odin-lang.org/logo.svg'>")
+	fmt.println("</a>")
+	fmt.println("<span class='subheader'>:: <a href='#pkgs'>docs</a></span>")
+	fmt.println("<form>")
+	fmt.println("<input class='search-input' placeholder='search' >")
+	fmt.println("</form>")
+	fmt.println(`<span class='feedback-welcome'>
 This is still work in progress.<br>
 Missing feature or have any feedback?<br>
 Please create an <a href="https://github.com/TatriX/odindoc/issues" target=_blank>issue</a>.
 </span>
 `)
-    fmt.println("</header>")
+    }
 
+    // main
     fmt.println("<main>")
     defer fmt.println("</main>")
 
-    fmt.println("<div id='pkgs'>")
-    fmt.println("<h1>Packages</h1>")
-    for pkg in doc_format.from_array(header, header.pkgs) {
-        pkg_name := doc_format.from_string(header, pkg.name)
-        switch pkg_name {
-        case "", "c", "main": continue
-        }
-        fmt.printf("<a href='#%s'>%s</a>\n", pkg_name, pkg_name)
+    // pkgs toc
+    {
+	fmt.println("<div id='pkgs'>")
+	defer fmt.println("</div>")
+	fmt.println("<h1>Packages</h1>")
+	for pkg in doc_format.from_array(header, header.pkgs) {
+            pkg_name := doc_format.from_string(header, pkg.name)
+            switch pkg_name {
+            case "", "c", "main": continue
+            }
+            fmt.printf("<a href='#%s'>%s</a>\n", pkg_name, pkg_name)
+	}
     }
-    fmt.println("</div>")
 
+    // pkgs
     for pkg in doc_format.from_array(header, header.pkgs) {
         pkg_name := doc_format.from_string(header, pkg.name)
         switch pkg_name {
         case "", "c", "main": continue
         }
 
+	// pkg
         fmt.printf("<div class='pkg' id='%s'>\n", pkg_name)
+	defer fmt.print("</div>")
         fmt.printf("<h2>Package: <span class='pkg-name'>%s</span></h2>\n", pkg_name)
 
+	/* iterate over entities multiple types, because we want them in particular order */
+
+	// types
+	types_header_written := false
+	for entity_index in doc_format.from_array(header, pkg.entities) {
+            entity := entities[entity_index]
+	    if entity.kind != .Type_Name do continue
+	    if !types_header_written {
+		types_header_written = true
+		fmt.println("<h3>Types</h3>")
+	    }
+
+	    type_name := doc_format.from_string(header, entity.name)
+
+            fmt.printf("<div class='type' id='%s.%s' data-pkg='%s'>", pkg_name, type_name, pkg_name)
+            defer fmt.println("</div>")
+
+	    // Name
+            fmt.printf(
+		"<span class='type-name'>%s.%s</span>",
+		pkg_name,
+		type_name,
+            )
+
+	    // Source location
+            base_url :: "https://github.com/odin-lang/Odin/tree/master"
+            file := doc_format.from_string(header, files[entity.pos.file].name)[len(ODIN_ROOT):]
+            line := entity.pos.line
+
+            // Link
+            fmt.printf(" <a href='#%s.%s' class='type-link'>::</a>", pkg_name, type_name)
+
+            fmt.printf(
+		" <a href='%s/%s#L%d' target=_blank class='keyword'>struct</a> {{",
+		base_url,
+		file,
+		line,
+            )
+
+	    // type
+	    type_type := types[entity.type]
+
+	    // fields
+	    if type_type.kind == .Named {
+		struct_type := types[doc_format.from_array(header, type_type.types)[0]]
+		fmt.println("<div class='struct-fields'>")
+		for field_index in doc_format.from_array(header, struct_type.entities) {
+		    field := entities[field_index]
+		    fmt.println("<div class='struct-field'>")
+		    print_param(header, &field)
+		    fmt.println(",</div>")
+		}
+		fmt.println("</div>")
+	    }
+
+	    fmt.println("}")
+
+	}
+
+	// procs
+	procs_header_written := false
         for entity_index in doc_format.from_array(header, pkg.entities) {
             entity := entities[entity_index]
-            if entity.kind == .Procedure {
-                proc_name := doc_format.from_string(header, entity.name)
+            if entity.kind != .Procedure do continue
 
-                fmt.printf("<div class='proc' id='%s.%s' data-pkg='%s'>", pkg_name, proc_name, pkg_name)
-                defer fmt.println("</div>")
+	    if !procs_header_written {
+		procs_header_written = true
+		fmt.println("<h3>Procs</h3>")
+	    }
 
-                // Name
-                fmt.printf(
-                    "<span class='proc-name'>%s.%s</span>",
-                    pkg_name,
-                    proc_name,
-                )
+            proc_name := doc_format.from_string(header, entity.name)
 
-                // Source location
-                base_url :: "https://github.com/odin-lang/Odin/tree/master"
-                file := doc_format.from_string(header, files[entity.pos.file].name)[len(ODIN_ROOT):]
-                line := entity.pos.line
+            fmt.printf("<div class='proc' id='%s.%s' data-pkg='%s'>", pkg_name, proc_name, pkg_name)
+            defer fmt.println("</div>")
 
-                // Link
-                fmt.printf(" <a href='#%s.%s' class='proc-link'>::</a>", pkg_name, proc_name)
+            // Name
+            fmt.printf(
+		"<span class='proc-name'>%s.%s</span>",
+		pkg_name,
+		proc_name,
+            )
 
-                fmt.printf(
-                    " <a href='%s/%s#L%d' target=_blank class='keyword'>proc</a>(",
-                    base_url,
-                    file,
-                    line,
-                )
+            // Source location
+            base_url :: "https://github.com/odin-lang/Odin/tree/master"
+            file := doc_format.from_string(header, files[entity.pos.file].name)[len(ODIN_ROOT):]
+            line := entity.pos.line
 
-                // Type
-                proc_type := types[entity.type]
-                proc_params_and_results := doc_format.from_array(header, proc_type.types)
+            // Link
+            fmt.printf(" <a href='#%s.%s' class='proc-link'>::</a>", pkg_name, proc_name)
 
-                // Input params
-		proc_params := types[proc_params_and_results[0]]
-                params := doc_format.from_array(header, proc_params.entities);
-                print_params(header, params)
+            fmt.printf(
+		" <a href='%s/%s#L%d' target=_blank class='keyword'>proc</a>(",
+		base_url,
+		file,
+		line,
+            )
 
-                // Results
-                fmt.printf(")")
-		proc_results := types[proc_params_and_results[1]]
-		results := doc_format.from_array(header, proc_results.entities);
-                if len(results) > 0 {
-                    fmt.printf(" -> ")
-                    if len(results) > 1 {
-                        fmt.printf("(")
-                        print_params(header, results)
-                        fmt.printf(")")
-                    } else {
-                        print_params(header, results)
-                    }
-                }
+            // Type
+            proc_type := types[entity.type]
+            proc_params_and_results := doc_format.from_array(header, proc_type.types)
 
-                fmt.printf("\n")
+            // Input params
+	    proc_params := types[proc_params_and_results[0]]
+            params := doc_format.from_array(header, proc_params.entities);
+            print_params(header, params)
 
-                // Docs
-                if docs := doc_format.from_string(header, entity.docs); len(docs) > 0 {
-                    fmt.printf("<p class='.docs'>%s</p>", docs)
-                }
+            // Results
+            fmt.printf(")")
+	    proc_results := types[proc_params_and_results[1]]
+	    results := doc_format.from_array(header, proc_results.entities);
+            if len(results) > 0 {
+		fmt.printf(" -> ")
+		if len(results) > 1 {
+                    fmt.printf("(")
+                    print_params(header, results)
+                    fmt.printf(")")
+		} else {
+                    print_params(header, results)
+		}
             }
-        }
-        fmt.print("</div>") // .pkg
+
+            fmt.printf("\n")
+
+            // Docs
+            if docs := doc_format.from_string(header, entity.docs); len(docs) > 0 {
+		fmt.printf("<p class='.docs'>%s</p>", docs)
+            }
+	}
     }
 }

@@ -22,7 +22,7 @@ function search(searchString) {
     const pkgsWithMatches = {};
     const searchTerms = (searchString == "") ? [] : searchString.split(" ");
 
-    document.querySelectorAll(".proc").forEach(proc => {
+    document.querySelectorAll(".proc, .type").forEach(proc => {
         if (searchTerms.length == 0 || searchTerms.every(term => proc.id.includes(term))) {
             pkgsWithMatches[proc.dataset.pkg] = true;
             proc.classList.add("match");
