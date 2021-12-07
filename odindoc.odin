@@ -1,5 +1,8 @@
 package main
 
+// TODO:
+// - bufio.Scanner_Error
+
 import "core:fmt"
 import doc_format "core:odin/doc-format"
 
@@ -50,22 +53,49 @@ print_param :: proc(header: ^doc_format.Header, param: ^doc_format.Entity) {
             print_init_string(header, param)
         }
         case .Slice: {
+            fmt.printf("[]")
+
             slice_type := types[doc_format.from_array(header, type.types)[0]]
-            fmt.printf("%s", doc_format.from_string(header, slice_type.name),)
+            slice_type_name := doc_format.from_string(header, slice_type.name)
+            if slice_type.kind == .Named {
+                entity := entities[doc_format.from_array(header, slice_type.entities)[0]]
+                file := files[entity.pos.file]
+                pkg := pkgs[file.pkg]
+	        pkg_name := doc_format.from_string(header, pkg.name)
+
+                fmt.printf("<a href='#%s.%s'>%s.%s</a>", pkg_name, slice_type_name, pkg_name, slice_type_name)
+            } else {
+                fmt.printf("%s", slice_type_name)
+            }
+
             print_init_string(header, param)
         }
         case .Pointer: {
             pointer_type := types[doc_format.from_array(header, type.types)[0]]
-            fmt.printf("%s", doc_format.from_string(header, pointer_type.name),)
+            type_name := doc_format.from_string(header, pointer_type.name)
+
+            fmt.printf("^")
+            if pointer_type.kind == .Named {
+                entity := entities[doc_format.from_array(header, pointer_type.entities)[0]]
+                file := files[entity.pos.file]
+                pkg := pkgs[file.pkg]
+	        pkg_name := doc_format.from_string(header, pkg.name)
+
+                fmt.printf("<a href='#%s.%s'>%s.%s</a>", pkg_name, type_name, pkg_name, type_name)
+            } else {
+                fmt.printf("%s", type_name)
+            }
+
             print_init_string(header, param)
         }
         case .Named: {
             base_type := types[doc_format.from_array(header, type.types)[0]]
             entity := entities[doc_format.from_array(header, type.entities)[0]]
+
             file := files[entity.pos.file]
             pkg := pkgs[file.pkg]
-
 	    pkg_name := doc_format.from_string(header, pkg.name)
+
 	    name := doc_format.from_string(header, entity.name)
             fmt.printf(
                 "<a href='#%s.%s'>%s.%s</a>",
@@ -76,8 +106,49 @@ print_param :: proc(header: ^doc_format.Header, param: ^doc_format.Entity) {
             )
             print_init_string(header, param)
         }
+        case .Array: {
+            for i : u32le = 0; i < type.elem_count_len; i += 1 {
+                fmt.printf("[%d]", type.elem_counts[i])
+            }
+
+            array_type := types[doc_format.from_array(header, type.types)[0]]
+            array_type_name := doc_format.from_string(header, array_type.name)
+
+            if array_type.kind == .Named {
+                entity := entities[doc_format.from_array(header, array_type.entities)[0]]
+                file := files[entity.pos.file]
+                pkg := pkgs[file.pkg]
+	        pkg_name := doc_format.from_string(header, pkg.name)
+
+                fmt.printf("<a href='#%s.%s'>%s.%s</a>", pkg_name, array_type_name, pkg_name, array_type_name)
+            } else {
+                fmt.printf("%s", array_type_name)
+            }
+
+            print_init_string(header, param)
+        }
+        case .Dynamic_Array: {
+            array_type := types[doc_format.from_array(header, type.types)[0]]
+            array_type_name := doc_format.from_string(header, array_type.name)
+
+            fmt.printf("[dynamic]")
+
+            if array_type.kind == .Named {
+                entity := entities[doc_format.from_array(header, array_type.entities)[0]]
+                file := files[entity.pos.file]
+                pkg := pkgs[file.pkg]
+	        pkg_name := doc_format.from_string(header, pkg.name)
+
+                fmt.printf("<a href='#%s.%s'>%s.%s</a>", pkg_name, array_type_name, pkg_name, array_type_name)
+            } else {
+                fmt.printf("%s", array_type_name)
+            }
+
+            print_init_string(header, param)
+        }
         case: {
-            fmt.printf("<<%s>>", type.kind)
+            /* fmt.println("<pre>", type, "</pre>") */
+            fmt.printf("??")
         }
     }
 }
@@ -89,16 +160,16 @@ main :: proc() {
 
     fmt.println("<head>")
     fmt.println("<meta charset=utf8>")
-    defer fmt.println(`<link rel="stylesheet" href="main.css?v=1">`)
+    fmt.println(`<link rel="stylesheet" href="main.css?v=3">`)
     fmt.println("</head>")
 
     fmt.println("<body>")
-    defer fmt.println(`<script src="main.js?v=1"></script>`)
+    defer fmt.println(`<script src="main.js?v=3"></script>`)
     defer fmt.println("</body>")
 
     // generate this file by calling:
     // $ odin doc examples/all/all_main.odin -all-packages -doc-format
-    data :: #load("odindoc.odin-doc")
+    data :: #load("all_main.odin-doc")
     header, err := doc_format.read_from_bytes(data)
     if err != nil {
         panic(fmt.tprintln(err))
@@ -133,15 +204,17 @@ Please create an <a href="https://github.com/TatriX/odindoc/issues" target=_blan
 
     // pkgs toc
     {
-	fmt.println("<div id='pkgs'>")
-	defer fmt.println("</div>")
+	fmt.println("<section id='pkgs'>")
+	defer fmt.println("</section>")
 	fmt.println("<h1>Packages</h1>")
+        fmt.println("<div class='columns-container'>")
+        defer fmt.println("</div>")
 	for pkg in doc_format.from_array(header, header.pkgs) {
             pkg_name := doc_format.from_string(header, pkg.name)
             switch pkg_name {
-            case "", "c", "main": continue
+            case "", "c", "all": continue
             }
-            fmt.printf("<a href='#%s'>%s</a>\n", pkg_name, pkg_name)
+            fmt.printf("<div><a href='#%s'>%s</a></div>\n", pkg_name, pkg_name)
 	}
     }
 
@@ -149,7 +222,7 @@ Please create an <a href="https://github.com/TatriX/odindoc/issues" target=_blan
     for pkg in doc_format.from_array(header, header.pkgs) {
         pkg_name := doc_format.from_string(header, pkg.name)
         switch pkg_name {
-        case "", "c", "main": continue
+        case "", "c", "all": continue
         }
 
 	// pkg
@@ -190,30 +263,42 @@ Please create an <a href="https://github.com/TatriX/odindoc/issues" target=_blan
             fmt.printf(" <a href='#%s.%s' class='type-link'>::</a>", pkg_name, type_name)
 
             fmt.printf(
-		" <a href='%s/%s#L%d' target=_blank class='keyword'>struct</a> {{",
+		" <a href='%s/%s#L%d' target=_blank class='keyword source-link'>struct</a> {{",
 		base_url,
 		file,
 		line,
             )
 
-	    // type
+	    // type2
 	    type_type := types[entity.type]
 
 	    // fields
 	    if type_type.kind == .Named {
 		struct_type := types[doc_format.from_array(header, type_type.types)[0]]
-		fmt.println("<div class='struct-fields'>")
+
+                fields_header_written := false
 		for field_index in doc_format.from_array(header, struct_type.entities) {
+                    if !fields_header_written {
+                        fields_header_written = true
+		        fmt.println("<div class='struct-fields'>")
+                    }
+
 		    field := entities[field_index]
 		    fmt.println("<div class='struct-field'>")
 		    print_param(header, &field)
 		    fmt.println(",</div>")
 		}
-		fmt.println("</div>")
+                if fields_header_written {
+                    fmt.println("</div>")
+                }
 	    }
 
 	    fmt.println("}")
 
+            // Docs
+            if docs := doc_format.from_string(header, entity.docs); len(docs) > 0 {
+		fmt.printf("<p class='docs'>%s</p>", docs)
+            }
 	}
 
 	// procs
@@ -248,7 +333,7 @@ Please create an <a href="https://github.com/TatriX/odindoc/issues" target=_blan
             fmt.printf(" <a href='#%s.%s' class='proc-link'>::</a>", pkg_name, proc_name)
 
             fmt.printf(
-		" <a href='%s/%s#L%d' target=_blank class='keyword'>proc</a>(",
+		" <a href='%s/%s#L%d' target=_blank class='keyword source-link'>proc</a>(",
 		base_url,
 		file,
 		line,
@@ -282,7 +367,7 @@ Please create an <a href="https://github.com/TatriX/odindoc/issues" target=_blan
 
             // Docs
             if docs := doc_format.from_string(header, entity.docs); len(docs) > 0 {
-		fmt.printf("<p class='.docs'>%s</p>", docs)
+		fmt.printf("<p class='docs'>%s</p>", docs)
             }
 	}
     }
